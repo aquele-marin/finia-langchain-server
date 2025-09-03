@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph.ui import AnyUIMessage, ui_message_reducer, push_ui_message
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.prebuilt import ToolNode, tools_condition
 
 from src.agent.tools.finance import stock_data
 
@@ -40,26 +41,43 @@ async def stock(state: AgentState):
             MessagesPlaceholder("human")
         ])
 
-    model =  ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6).with_structured_output(StockOutput).with_config({ "tags": ["nostream"]})
+    # model =  ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6).with_structured_output(StockOutput).with_config({ "tags": ["nostream"]})
     # tools = [stock_data]
     # model_with_tools = model.bind_tools(tools)
     # agent = prompt_template | model_with_tools
-    agent = model
-    stock: StockOutput = (
+    # agent = model
+    # stock: StockOutput = (
+    #     await agent.ainvoke(state["messages"])
+    # )
+
+    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+    tools = [stock_data]
+    model_with_tools = model.bind_tools(tools)
+    model_with_tools = model_with_tools.with_config({ "tags": ["nostream"] })
+    
+    agent = prompt_template | model_with_tools
+
+    answer = (
         await agent.ainvoke(state["messages"])
     )
 
+    print("newState", answer)
 
     message = AIMessage(
         id=str(uuid.uuid4()),
-        content=f"Here's the stock for {stock['symbol']}"
+        content=answer.content
     )
 
     # Emit UI elements associated with the message
-    push_ui_message("stock", stock, message=message)
-    return { "messages": [message] }
+
+    push_ui_message("stock", answer.content, message=message)
+    return { "messages": [answer]}
 
 workflow = StateGraph(AgentState)
-workflow.add_node(stock)
+tool_node = ToolNode(tools=[stock_data])
+workflow.add_node("stock", stock)
+workflow.add_node("tools", tool_node)
 workflow.add_edge("__start__", "stock")
+workflow.add_conditional_edges("stock", tools_condition)
+workflow.add_edge("tools", "stock")
 graph = workflow.compile()
