@@ -8,8 +8,11 @@ from langgraph.graph import StateGraph
 from langgraph.runtime import Runtime
 from langgraph.graph.message import add_messages
 from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph.ui import AnyUIMessage, ui_message_reducer, push_ui_message
 from langchain_google_genai import ChatGoogleGenerativeAI
+
+from src.agent.tools.finance import stock_data
 
 
 class AgentState(TypedDict):
@@ -21,12 +24,31 @@ async def stock(state: AgentState):
     class StockOutput(TypedDict):
         symbol: str
 
+    # stock: StockOutput = (
+    #     await ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6)
+    #         .with_structured_output(StockOutput)
+    #         .with_config({"tags": ["nostream"]})
+    #         .ainvoke(state["messages"])
+    # )
+
+    prompt_template = ChatPromptTemplate([
+            (
+                "system",
+                "You are a helpful assistant. You're provided a list of tools, and an input from the user.\n"
+                + "Your job is to determine whether or not you have a tool which can handle the users input, or respond with plain text.",
+            ),
+            MessagesPlaceholder("human")
+        ])
+
+    model =  ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6).with_structured_output(StockOutput).with_config({ "tags": ["nostream"]})
+    # tools = [stock_data]
+    # model_with_tools = model.bind_tools(tools)
+    # agent = prompt_template | model_with_tools
+    agent = model
     stock: StockOutput = (
-        await ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6)
-            .with_structured_output(StockOutput)
-            .with_config({"tags": ["nostream"]})
-            .ainvoke(state["messages"])
+        await agent.ainvoke(state["messages"])
     )
+
 
     message = AIMessage(
         id=str(uuid.uuid4()),
