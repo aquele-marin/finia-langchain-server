@@ -23,7 +23,6 @@ def stock_data(symbol: str) -> dict:
     if not alphavantage_api_key:
         raise ValueError("Missing ALPHAVANTAGE_API_KEY secre.")
     
-    print(f"Buscando stock: {symbol}")
     alphavantage_url = f"https://alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={alphavantage_api_key}"
     alphavantage_response = requests.get(alphavantage_url)
     if not alphavantage_response.ok:
@@ -31,7 +30,6 @@ def stock_data(symbol: str) -> dict:
     
     stocks = alphavantage_response.json()
     stocks = stocks["Time Series (Daily)"]
-    print("Buscado com sucesso!")
     
     return {
         "symbol": symbol,
