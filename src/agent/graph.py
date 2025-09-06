@@ -21,11 +21,14 @@ class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     ui: Annotated[Sequence[AnyUIMessage], ui_message_reducer]
     stocks: dict
+    symbol: str
 
 
 async def stock(state: AgentState):
     class StockOutput(TypedDict):
+        stocks: dict
         symbol: str
+        message: str
 
     prompt_template = ChatPromptTemplate([
             (
@@ -55,11 +58,11 @@ async def stock(state: AgentState):
     # Emit UI elements associated with the message
     if len(answer.tool_calls) == 0:
         structured_output: StockOutput = {
-            "symbol": answer.content
+            "stocks": state["stocks"],
+            "symbol": state["symbol"],
+            "message": answer.content
         }
-        print("\n\n\n\n\n\nSTOCKS STATE", state)
-        print("\n\n\n\n\n\nUI STATE", state["ui"])
-        print("\n\n\n\n\n\nMESSAGES STATE", state["messages"])
+
 
         push_ui_message("stock", structured_output, message=message)
     return { "messages": [answer]}

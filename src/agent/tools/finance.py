@@ -34,19 +34,8 @@ def stock_data(symbol: str, tool_call_id: Annotated[str, InjectedToolCallId]) ->
     stocks = alphavantage_response.json()
     stocks = stocks["Time Series (Daily)"]
     
-    # return {
-    #     "symbol": symbol,
-    #     "stocks": stocks
-    # }
-    # Command(update={
-    #     "stockPrices": stocks
-        
-    # })
-
     return Command(update={
         "stocks": stocks,
+        "symbol": symbol,
         "messages": [ToolMessage("Successfully looked up data information", tool_call_id=tool_call_id)]
     })
-    # return {
-    #     "stocks": stocks
-    # }
