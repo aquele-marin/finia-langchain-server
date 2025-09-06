@@ -1,9 +1,11 @@
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Annotated
 from typing_extensions import TypedDict
 from pydantic import BaseModel
 import requests
-from langchain_core.tools import tool
+from langchain_core.tools import tool, InjectedToolCallId
+from langgraph.types import Command
+from langchain_core.messages import ToolMessage
 
 ALPHAVANTAGE_API_KEY = os.environ.get("ALPHAVANTAGE_API_KEY")
 
@@ -13,9 +15,10 @@ class StockInput(BaseModel):
     """
     The companies symbol in the stock market. EX: 'APPL'
     """
+    tool_call_id: Annotated[str, InjectedToolCallId]
 
 @tool("stock_data", args_schema=StockInput, return_direct=True)
-def stock_data(symbol: str) -> dict:
+def stock_data(symbol: str, tool_call_id: Annotated[str, InjectedToolCallId]) -> dict:
     """
     Get daily stock prices of symbol
     """
@@ -31,7 +34,19 @@ def stock_data(symbol: str) -> dict:
     stocks = alphavantage_response.json()
     stocks = stocks["Time Series (Daily)"]
     
-    return {
-        "symbol": symbol,
-        "stocks": stocks
-    }
+    # return {
+    #     "symbol": symbol,
+    #     "stocks": stocks
+    # }
+    # Command(update={
+    #     "stockPrices": stocks
+        
+    # })
+
+    return Command(update={
+        "stocks": stocks,
+        "messages": [ToolMessage("Successfully looked up data information", tool_call_id=tool_call_id)]
+    })
+    # return {
+    #     "stocks": stocks
+    # }

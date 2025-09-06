@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from operator import add
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, TypedDict, Annotated, Sequence
@@ -7,7 +8,7 @@ from typing import Any, Dict, TypedDict, Annotated, Sequence
 from langgraph.graph import StateGraph
 from langgraph.runtime import Runtime
 from langgraph.graph.message import add_messages
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph.ui import AnyUIMessage, ui_message_reducer, push_ui_message
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -19,18 +20,12 @@ from src.agent.tools.finance import stock_data
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     ui: Annotated[Sequence[AnyUIMessage], ui_message_reducer]
+    stocks: dict
 
 
 async def stock(state: AgentState):
     class StockOutput(TypedDict):
         symbol: str
-
-    # stock: StockOutput = (
-    #     await ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6)
-    #         .with_structured_output(StockOutput)
-    #         .with_config({"tags": ["nostream"]})
-    #         .ainvoke(state["messages"])
-    # )
 
     prompt_template = ChatPromptTemplate([
             (
@@ -40,15 +35,6 @@ async def stock(state: AgentState):
             ),
             MessagesPlaceholder("human")
         ])
-
-    # model =  ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.6).with_structured_output(StockOutput).with_config({ "tags": ["nostream"]})
-    # tools = [stock_data]
-    # model_with_tools = model.bind_tools(tools)
-    # agent = prompt_template | model_with_tools
-    # agent = model
-    # stock: StockOutput = (
-    #     await agent.ainvoke(state["messages"])
-    # )
 
     model = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
     tools = [stock_data]
@@ -61,16 +47,21 @@ async def stock(state: AgentState):
         await agent.ainvoke(state["messages"])
     )
 
-    print("newState", answer)
-
     message = AIMessage(
         id=str(uuid.uuid4()),
         content=answer.content
     )
 
     # Emit UI elements associated with the message
+    if len(answer.tool_calls) == 0:
+        structured_output: StockOutput = {
+            "symbol": answer.content
+        }
+        print("\n\n\n\n\n\nSTOCKS STATE", state)
+        print("\n\n\n\n\n\nUI STATE", state["ui"])
+        print("\n\n\n\n\n\nMESSAGES STATE", state["messages"])
 
-    push_ui_message("stock", answer.content, message=message)
+        push_ui_message("stock", structured_output, message=message)
     return { "messages": [answer]}
 
 workflow = StateGraph(AgentState)
