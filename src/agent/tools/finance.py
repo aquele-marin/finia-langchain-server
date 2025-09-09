@@ -15,12 +15,20 @@ class StockInput(BaseModel):
     """
     The companies symbol in the stock market. EX: 'APPL'
     """
+    moving_average: bool
+    """
+    Filled according to the follow:
+    True: ONLY if moving average is a good way to analyze the request
+    False: Any other reason.
+    """
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 @tool("stock_data", args_schema=StockInput, return_direct=True)
-def stock_data(symbol: str, tool_call_id: Annotated[str, InjectedToolCallId]) -> dict:
+def stock_data(symbol: str, moving_average: bool, tool_call_id: Annotated[str, InjectedToolCallId]) -> dict:
     """
     Get daily stock prices of symbol
+
+    Used to calculate moving average of stock prices
     """
     alphavantage_api_key = ALPHAVANTAGE_API_KEY
     if not alphavantage_api_key:
@@ -37,5 +45,6 @@ def stock_data(symbol: str, tool_call_id: Annotated[str, InjectedToolCallId]) ->
     return Command(update={
         "stocks": stocks,
         "symbol": symbol,
-        "messages": [ToolMessage("Successfully looked up data information", tool_call_id=tool_call_id)]
+        "messages": [ToolMessage("Successfully looked up data information", tool_call_id=tool_call_id)],
+        "moving_average": moving_average
     })

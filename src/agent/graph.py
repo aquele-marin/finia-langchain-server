@@ -16,12 +16,12 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 from src.agent.tools.finance import stock_data
 
-
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     ui: Annotated[Sequence[AnyUIMessage], ui_message_reducer]
     stocks: dict
     symbol: str
+    moving_average: bool
 
 
 async def stock(state: AgentState):
@@ -63,8 +63,11 @@ async def stock(state: AgentState):
             "message": answer.content
         }
 
+        if state["moving_average"]:
+            push_ui_message("stockScatterPlot", structured_output, message=message)
+        else:
+            push_ui_message("stock", structured_output, message=message)
 
-        push_ui_message("stock", structured_output, message=message)
     return { "messages": [answer]}
 
 workflow = StateGraph(AgentState)
