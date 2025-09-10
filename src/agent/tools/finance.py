@@ -28,7 +28,7 @@ def stock_data(symbol: str, moving_average: bool, tool_call_id: Annotated[str, I
     """
     Get daily stock prices of symbol
 
-    Used to calculate moving average of stock prices
+    Used to calculate moving average of stock prices and get stock data
     """
     alphavantage_api_key = ALPHAVANTAGE_API_KEY
     if not alphavantage_api_key:
