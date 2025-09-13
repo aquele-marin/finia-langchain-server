@@ -33,8 +33,9 @@ async def stock(state: AgentState):
     prompt_template = ChatPromptTemplate([
             (
                 "system",
-                "You are a helpful assistant. You're provided a list of tools, and an input from the user.\n"
-                + "Your job is to determine whether or not you have a tool which can handle the users input, or respond with plain text.",
+                "You are a finance data analyst. You're provided a list of tools, and an input from the user.\n"
+                + "Your job is to determine whether or not you have a tool which can handle the users input, or respond with plain text.\n",
+                + "You're supported with two different views, a stock daily prices chart and a moving average chart, analyze if one of them is necessary and which one."
             ),
             MessagesPlaceholder("human")
         ])
