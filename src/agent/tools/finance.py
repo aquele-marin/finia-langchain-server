@@ -2,12 +2,12 @@ import os
 from typing import Optional, Dict, Any, Annotated
 from typing_extensions import TypedDict
 from pydantic import BaseModel
-import requests
 from langchain_core.tools import tool, InjectedToolCallId
 from langgraph.types import Command
 from langchain_core.messages import ToolMessage
+from src.infra.financialAPI import FinancialAPI
 
-ALPHAVANTAGE_API_KEY = os.environ.get("ALPHAVANTAGE_API_KEY")
+financial = FinancialAPI()
 
 class StockInput(BaseModel):
 
@@ -30,17 +30,9 @@ def stock_data(symbol: str, moving_average: bool, tool_call_id: Annotated[str, I
 
     Used to calculate moving average of stock prices and get stock data
     """
-    alphavantage_api_key = ALPHAVANTAGE_API_KEY
-    if not alphavantage_api_key:
-        raise ValueError("Missing ALPHAVANTAGE_API_KEY secre.")
+    response = financial.get_stocks(symbol)
     
-    alphavantage_url = f"https://alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={alphavantage_api_key}"
-    alphavantage_response = requests.get(alphavantage_url)
-    if not alphavantage_response.ok:
-        raise ValueError("Failed to get AlphaVantage data.")
-    
-    stocks = alphavantage_response.json()
-    stocks = stocks["Time Series (Daily)"]
+    stocks = response["Time Series (Daily)"]
     
     return Command(update={
         "stocks": stocks,

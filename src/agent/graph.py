@@ -23,18 +23,21 @@ class AgentState(TypedDict):
     symbol: str
     moving_average: bool
 
-
-async def stock(state: AgentState):
-    class StockOutput(TypedDict):
+class StockOutput(TypedDict):
         stocks: dict
         symbol: str
         message: str
+        moving_average: bool
+        
+
+async def stock(state: AgentState):
+    
 
     prompt_template = ChatPromptTemplate([
             (
                 "system",
                 "You are a finance data analyst. You're provided a list of tools, and an input from the user.\n"
-                + "Your job is to determine whether or not you have a tool which can handle the users input, or respond with plain text.\n",
+                + "Your job is to determine whether or not you have a tool which can handle the users input, or respond with plain text.\n"
                 + "You're supported with two different views, a stock daily prices chart and a moving average chart, analyze if one of them is necessary and which one."
             ),
             MessagesPlaceholder("human")
@@ -56,9 +59,11 @@ async def stock(state: AgentState):
         content=answer.content
     )
 
+    print("ANSWER: ", answer)
+    print("Message: ", message)
     # Emit UI elements associated with the message
     if len(answer.tool_calls) == 0:
-        structured_output: StockOutput = {
+        structured_output = {
             "stocks": state["stocks"],
             "symbol": state["symbol"],
             "message": answer.content
@@ -71,7 +76,7 @@ async def stock(state: AgentState):
 
     return { "messages": [answer]}
 
-workflow = StateGraph(AgentState)
+workflow = StateGraph(AgentState, output_schema=StockOutput)
 tool_node = ToolNode(tools=[stock_data])
 workflow.add_node("stock", stock)
 workflow.add_node("tools", tool_node)
