@@ -28,7 +28,6 @@ class StockOutput(TypedDict):
         symbol: str
         message: str
         moving_average: bool
-        
 
 async def stock(state: AgentState):
     
